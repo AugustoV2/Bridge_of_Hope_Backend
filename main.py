@@ -5,6 +5,8 @@ from bson.objectid import ObjectId
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import google.generativeai as genai
+
 
 app = Flask(__name__)
 load_dotenv()
@@ -161,6 +163,58 @@ def get_donor_data():
         return jsonify(donor_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/imageupload', methods=['POST'])
+def image_upload():
+    try:
+        # Get the base64 image from the request
+        data = request.json
+        image_base64 = data.get("image")
+
+        if not image_base64:
+            return jsonify({"error": "No image provided"}), 400
+
+        # Decode the base64 image
+        image_data = base64.b64decode(image_base64.split(",")[1])  # Remove the data URL prefix if present
+        image = Image.open(BytesIO(image_data))
+
+        # Configure Google Generative AI
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        # Upload the image to Google Generative AI
+        image_file = genai.upload_file(image, display_name="Uploaded Image", resumable=True)
+
+        # Generate content using the image
+        prompt = "Describe this image."
+        model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
+        response = model.generate_content([image_file, prompt], request_options={"timeout": 600})
+
+        # Return the response
+        return jsonify({"description": response.text}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+        print(response.text)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+   
+    
+
+
+       
+
+
+
+   
+
+
+
+
+       
+
+        
     
 
 if __name__ == "__main__":
