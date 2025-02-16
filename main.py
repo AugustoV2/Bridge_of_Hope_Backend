@@ -164,5 +164,9 @@ def get_donor_data():
     
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  
-    app.run(host="0.0.0.0", port=port, debug=False)
+    try:
+        port = int(os.environ.get("PORT", 8000))
+        print(f"Starting app on port {port}...")  # Debugging
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception as e:
+        print(f"Failed to start app: {e}")  # Debugging
