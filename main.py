@@ -3,10 +3,14 @@ from flask_bcrypt import Bcrypt
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb+srv://augu:bzHOV28wdOKH4XdK@bridgeofhope.yswec.mongodb.net/BridgeOfHope"
-app.config["SECRET_KEY"] = "AIzaSyBJDY0aaMmot7gJGb1iPEINDxlgG9tj0bk"
+load_dotenv()
+
+app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 
 mongo = PyMongo(app)
