@@ -287,6 +287,7 @@ def organisationDetails():
         phone_number = data.get("phone_number")
         address = data.get("address")
         headName = data.get("headName")
+        organisation_id = data.get("organisation_id")
 
     
 
