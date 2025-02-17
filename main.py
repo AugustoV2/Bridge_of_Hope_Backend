@@ -27,6 +27,7 @@ donors = mongo.db.donors
 organizations = mongo.db.organizations
 donors_collection =mongo.db.donors_collection
 donations_collection = mongo.db["donations"]
+oraganisation_collection = mongo.db["oraganisation_collection"]
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -63,6 +64,9 @@ def register():
 
         return jsonify({"message": "Registration successful", "donor_id": str(donor_id)}), 201
 
+
+
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
@@ -92,6 +96,9 @@ def login():
 
         session["organizations_id"] = str(donor["_id"])
         return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"]}), 200
+
+
+
 
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -274,6 +281,32 @@ def donations():
 
 
 
+
+@app.route('/oraganisation', methods=['POST'])
+def organisationDetails():
+    try:
+        data = request.json
+        organisation_name = data.get("organisation_name")
+        email = data.get("email")
+        phone_number = data.get("phone_number")
+        address = data.get("address")
+        organisation_id = data.get("organisation_id")
+
+        # Validate required fields
+        required_fields = ["organisation_name", "phone_number", "address"]
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing field: {field}"}), 400
+        
+        org_id=oraganisation_collection.insert_one({
+            "organisation_name": data["organisation_name"],
+            "phone_number": data["phone_number"],
+            "address": data["address"],
+            "email": data["email"],
+            "organisation_id": data["organisation_id"]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
        
 
         
