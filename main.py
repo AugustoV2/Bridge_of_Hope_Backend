@@ -183,10 +183,9 @@ def image_upload():
     try:
         # Get the base64 image from the request
         data = request.json
-        image_base64 = data.get("image")
+        image = data.get("image")
 
-        if not image_base64:
-            return jsonify({"error": "No image provided"}), 400
+       
 
         
        
