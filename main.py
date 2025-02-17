@@ -191,7 +191,7 @@ def image_upload():
 
         prompt = "Describe this video."
 
-        model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
 
 
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
