@@ -177,42 +177,31 @@ def get_donor_data():
     
 
 
-
 @app.route('/imageupload', methods=['POST'])
 def image_upload():
     try:
-        # Get the base64 image from the request
         data = request.json
-        image = data.get("image")
+        image_data = data.get("image")  # Assuming the image is sent as a base64 encoded string
 
-       
-
-        
-       
-        image = Image.open(BytesIO(image))
-
-        # Configure Google Generative AI
+        if not image_data:
+            return jsonify({"error": "No image data provided"}), 
+    
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+       
 
-        # Upload the image to Google Generative AI
-        image_file = genai.upload_file(image, display_name="Uploaded Image", resumable=True)
+        prompt = "Describe this video."
 
-        # Generate content using the image
-        prompt = "Describe this image."
         model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
-        response = model.generate_content([image_file, prompt], request_options={"timeout": 600})
 
-        # Return the response
-        return jsonify({"description": response.text}), 200
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+        response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
+
         print(response.text)
+
+        return jsonify({"message": "Image uploaded successfully!","description" : response.text}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-   
-    
+
 
 
        
