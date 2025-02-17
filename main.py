@@ -284,7 +284,7 @@ def organisationDetails():
         data = request.json
         organisation_name = data.get("organizationName")
         registrationNumber = data.get("registrationNumber")
-        phone_number = data.get("phone_number")
+       
         address = data.get("address")
         headName = data.get("headName")
         organisation_id = data.get("organisation_id")
