@@ -27,7 +27,7 @@ donors = mongo.db.donors
 organizations = mongo.db.organizations
 donors_collection =mongo.db.donors_collection
 donations_collection = mongo.db["donations"]
-oraganisation_collection = mongo.db["oraganisation_collection"]
+oraganisation_collection = mongo.db.oraganisation_collection
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -286,25 +286,23 @@ def organisationDetails():
         registrationNumber = data.get("registrationNumber")
        
         address = data.get("address")
+        organizations_id = data.get("organizations_id")
         headName = data.get("headName")
-        organisation_id = data.get("organisation_id")
+       
+        
 
     
 
-        # Validate required fields
-        required_fields = ["organisation_name", "phone_number", "address"]
-        print(data)
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({"error": f"Missing field: {field}"}), 400
+       
         
         org_id=oraganisation_collection.insert_one({
-            "organisation_name": data["organisation_name"],
-            "phone_number": data["phone_number"],
-            "address": data["address"],
-            "email": data["email"],
-            "organisation_id": data["organisation_id"]
-        })
+            "organisation_name": organisation_name,
+            "registrationNumber": registrationNumber,
+            "address": address,
+           
+            "organizations_id": organizations_id,
+            "headName": headName
+        }).inserted_id
     except Exception as e:
         return jsonify({"error": str(e)}), 500
        
