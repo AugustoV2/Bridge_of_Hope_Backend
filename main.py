@@ -215,6 +215,8 @@ def donations():
         donation_date = data.get("donation_date")
         additional_notes = data.get("Additional_Notes")
         image = data.get("image")
+        response = data.get("apiResponse")
+        itemname = data.get("itemname")
 
         print(data)
 
@@ -244,6 +246,7 @@ def donations():
                     "items_donated": items_donated,
                     "last_donation": donation_date,
                     "recent_donations": recent_donations
+
                 }
             }
         )
@@ -255,7 +258,10 @@ def donations():
             "number_items": number_items,
             "donation_date": donation_date,
             "additional_notes": additional_notes,
-            "image": image
+            "image": image,
+            "response": response,
+            "itemname": itemname
+            
         }
         donation_id = donations_collection.insert_one(donation_record).inserted_id
 
