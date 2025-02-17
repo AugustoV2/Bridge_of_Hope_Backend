@@ -293,6 +293,7 @@ def organisationDetails():
 
         # Validate required fields
         required_fields = ["organisation_name", "phone_number", "address"]
+        print(data)
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({"error": f"Missing field: {field}"}), 400
