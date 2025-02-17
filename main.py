@@ -188,9 +188,9 @@ def image_upload():
         if not image_base64:
             return jsonify({"error": "No image provided"}), 400
 
-        # Decode the base64 image
-        image_data = base64.b64decode(image_base64.split(",")[1])  # Remove the data URL prefix if present
-        image = Image.open(BytesIO(image_data))
+        
+       
+        image = Image.open(BytesIO(image))
 
         # Configure Google Generative AI
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
