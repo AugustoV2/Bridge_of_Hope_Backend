@@ -94,7 +94,9 @@ def login():
             return jsonify({"error": "Invalid email or password"}), 401
         
 
-        session["organizations_id"] = str(donor["_id"])
+        session["organizations_id"] = str(organization["_id"])
+        if organization["Details"] == "Yes":
+            return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"], "Details": "Yes"}), 200
         return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"]}), 200
 
 
@@ -276,15 +278,17 @@ def donations():
 
 
 
-@app.route('/oraganisation', methods=['POST'])
+@app.route('/oraganisationDetails', methods=['POST'])
 def organisationDetails():
     try:
         data = request.json
-        organisation_name = data.get("organisation_name")
-        email = data.get("email")
+        organisation_name = data.get("organizationName")
+        registrationNumber = data.get("registrationNumber")
         phone_number = data.get("phone_number")
         address = data.get("address")
-        organisation_id = data.get("organisation_id")
+        headName = data.get("headName")
+
+    
 
         # Validate required fields
         required_fields = ["organisation_name", "phone_number", "address"]
