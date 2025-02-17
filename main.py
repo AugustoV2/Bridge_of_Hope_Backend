@@ -97,7 +97,7 @@ def login():
         session["organizations_id"] = str(organization["_id"])
         if organization["Details"] == "Yes":
             return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"], "Details": "Yes"}), 200
-        return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"]}), 200
+        return jsonify({"message": "Login successful", "organizations_id": session["organizations_id"],"Details": "No"}), 200
 
 
 
