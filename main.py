@@ -27,7 +27,9 @@ donors = mongo.db.donors
 organizations = mongo.db.organizations
 donors_collection =mongo.db.donors_collection
 donations_collection = mongo.db["donations"]
-oraganisation_collection = mongo.db.oraganisation_collection
+oraganisation_collection = mongo.db["oraganisation_collection"]
+accepted_requests_collection = mongo.db["accepted_requests"]  # New collection
+declined_requests_collection = mongo.db["declined_requests"] 
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -60,7 +62,7 @@ def register():
             return jsonify({"error": "Email already exists"}), 400
 
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-        donor_id = donors.insert_one({ "email": email, "password": hashed_password}).inserted_id
+        donor_id = donors.insert_one({ "email": email, "password": hashed_password,"Details" : "No"}).inserted_id
 
         return jsonify({"message": "Registration successful", "donor_id": str(donor_id)}), 201
 
@@ -85,7 +87,7 @@ def login():
 
         if donor["Details"] == "Yes":
             return jsonify({"message": "Login successful", "donor_id": session["donor_id"], "Details": "Yes"}), 200
-        return jsonify({"message": "Login successful", "donor_id": session["donor_id"]}), 200
+        return jsonify({"message": "Login successful", "donor_id": session["donor_id"],"Details": "No"}), 200
     
 
     if user_type != "donor":
@@ -156,7 +158,7 @@ def get_donor():
 
 
 @app.route('/donordetails', methods=['GET'])
-def get_donor_data():
+def get_donor_details():
     try:
         data = request.args.get("donor_id")
         donor = donors_collection.find_one({"donor_id": data})  
@@ -170,7 +172,8 @@ def get_donor_data():
             "itemsDonated": donor["items_donated"] if "items_donated" in donor else 0,
             "lastDonation": donor["last_donation"] if "last_donation" in donor else None,
             "impactScore": donor["impact_score"] if "impact_score" in donor else 0,
-            "recentDonations": donor["recent_donations"] if "recent_donations" in donor else []
+            "recentDonations": donor["recent_donations"] if "recent_donations" in donor else [],
+            "address":donor["address"]
         }
 
         return jsonify(donor_data)
@@ -178,29 +181,69 @@ def get_donor_data():
         return jsonify({"error": str(e)}), 500
     
 
+@app.route('/donorInfo', methods=['GET'])
+def get_donor_info():
+    try:
+        # Get the comma-separated donor_ids from the query parameter
+        donor_ids = request.args.get("donor_ids")
+        if not donor_ids:
+            return jsonify({"error": "No donor_ids provided"}), 400
+
+        # Split the comma-separated string into a list of donor_ids
+        donor_id_list = donor_ids.split(',')
+
+        # Fetch all donors matching the provided donor_ids
+        donors = donors_collection.find({"donor_id": {"$in": donor_id_list}})
+
+        # Prepare the response data
+        donor_data_list = []
+        for donor in donors:
+            donor_data = {
+                "donor_id": donor["donor_id"],
+                "full_name": donor["full_name"],
+                
+                "address": donor.get("address", "Address not available")
+            }
+            donor_data_list.append(donor_data)
+
+        # If no donors are found, return a 404 error
+        if not donor_data_list:
+            return jsonify({"error": "No donors found"}), 404
+
+        return jsonify(donor_data_list)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+import uuid
 
 @app.route('/imageupload', methods=['POST'])
 def image_upload():
     try:
         data = request.json
-        image_data = data.get("image")  # Assuming the image is sent as a base64 encoded string
+        image_data = data.get("image")  # Base64 encoded image
 
         if not image_data:
-            return jsonify({"error": "No image data provided"}), 
-    
+            return jsonify({"error": "No image data provided"}), 400
+
+        # Decode the base64 image
+        image_data = image_data.split(",")[1]
+        image = Image.open(BytesIO(base64.b64decode(image_data)))
+
+        # Save the image to a unique file path
+        image_filename = f"image_{uuid.uuid4()}.png"
+        image.save(image_filename)
+
+        # Process the image with Gemini API
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-       
-
-        prompt = "Describe this video."
-
-        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash-lite-preview-02-05")
-
-
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        prompt = "Analyze the image and describe what is shown in simple terms..."
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
 
-        print(response.text)
+        # Clean up: Delete the saved image file
+        os.remove(image_filename)
 
-        return jsonify({"message": "Image uploaded successfully!","description" : response.text}), 201
+        return jsonify({"message": "Image uploaded successfully!", "description": response.text}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -291,7 +334,9 @@ def organisationDetails():
        
         
 
-    
+        org_i=organizations.update_one({"_id": ObjectId(organizations_id)}, {"$set": {"Details": "Yes"}})
+        print(org_i)
+        
 
        
         
@@ -303,12 +348,198 @@ def organisationDetails():
             "organizations_id": organizations_id,
             "headName": headName
         }).inserted_id
+        return jsonify({"message": "Details added successfully!", "org_id": str(org_id)}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
        
+       
+@app.route('/organisationdetails', methods=['GET'])
+def organisationdetials():
+    try:
+        data = request.args.get("organizations_id")
+        organisation = oraganisation_collection.find_one({"organizations_id": data})  
 
-        
+        if not organisation:
+            return jsonify({"error": "Organisation not found"}), 404
+
+        organisation_data = {
+            "organisation_name": organisation["organisation_name"],
+            
+            "Total_Pickups": organisation["Total_Pickups"] if "Total_Pickups" in organisation else 0,
+           
+            "Pending_Pickups": organisation["Pending Pickups"] if "Pending Pickups" in organisation else 0,
+            "Completed_Today": organisation["Completed Today"] if "Completed Today" in organisation else 0,
+        }
+
+        return jsonify(organisation_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
+
+
+
+
+
+@app.route('/organisationPickup', methods=['GET'])
+def organisationPickup():
+    try:
+        organisation_id = request.args.get("organizations_id")
+        organisationdaonation = donations_collection.find({})
+        donations_list = []
+        for donation in organisationdaonation:
+            donations_list.append({
+                "donor_id": donation["donor_id"],
+                "condition": donation["condition"],
+                "number_items": donation["number_items"],
+                "donation_date": donation["donation_date"],
+                "additional_notes": donation["additional_notes"],
+                "image": donation["image"],
+                # "response": donation["response"],
+                "itemname": donation["itemname"]
+            })
+
+      
+        pending_pickups = len(donations_list)
+        org_e=oraganisation_collection.update_one({"_id": ObjectId(organisation_id)}, {"$set": {"Pending Pickups": pending_pickups}})
+        return jsonify(donations_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+
+
+@app.route('/acceptRequest', methods=['POST'])
+def accept_request():
+    try:
+        data = request.json
+        donor_id = data.get("donor_id")
+        organisation_id = data.get("organisation_id")
+
+        if not (donor_id and organisation_id):
+            return jsonify({"error": "Donor ID and Organisation ID are required"}), 400
+
+        # Find the request in the donations collection
+        request_to_accept = donations_collection.find_one({"donor_id": donor_id})
+        if not request_to_accept:
+            return jsonify({"error": "Request not found"}), 404
+        
+
+        #when the request is accepyted update total pickup Pending Pickups Completed Today etx
+        existing_organisation = oraganisation_collection.find_one({"organizations_id": organisation_id})
+        if not existing_organisation:
+            return jsonify({"error": "Organisation not found"}), 404
+        
+        Total_Pickups = existing_organisation.get("Total_Pickups", 0) + 1
+        org_e = oraganisation_collection.update_one({"_id": ObjectId(organisation_id)}, {"$set": {"Total_Pickups": Total_Pickups}}) 
+       
+
+
+
+        # Move the request to the accepted_requests collection
+        accepted_request = {
+            "donor_id": request_to_accept["donor_id"],
+            "condition": request_to_accept["condition"],
+            "number_items": request_to_accept["number_items"],
+            "donation_date": request_to_accept["donation_date"],
+            "additional_notes": request_to_accept["additional_notes"],
+            "image": request_to_accept["image"],
+            "itemname": request_to_accept["itemname"],
+            "organisation_id": organisation_id,
+            "status": "accepted"
+        }
+        accepted_requests_collection.insert_one(accepted_request)
+
+        # Remove the request from the donations collection
+        donations_collection.delete_one({"donor_id": donor_id})
+
+        return jsonify({"message": "Request accepted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# New endpoint to decline a pickup request
+@app.route('/declineRequest', methods=['POST'])
+def decline_request():
+    try:
+        data = request.json
+        donor_id = data.get("donor_id")
+        organisation_id = data.get("organisation_id")
+
+        if not (donor_id and organisation_id):
+            return jsonify({"error": "Donor ID and Organisation ID are required"}), 400
+
+        # Find the request in the donations collection
+        request_to_decline = donations_collection.find_one({"donor_id": donor_id})
+        if not request_to_decline:
+            return jsonify({"error": "Request not found"}), 404
+
+        # Move the request to the declined_requests collection
+        declined_request = {
+            "donor_id": request_to_decline["donor_id"],
+            "condition": request_to_decline["condition"],
+            "number_items": request_to_decline["number_items"],
+            "donation_date": request_to_decline["donation_date"],
+            "additional_notes": request_to_decline["additional_notes"],
+            "image": request_to_decline["image"],
+            "itemname": request_to_decline["itemname"],
+            "organisation_id": organisation_id,
+            "status": "declined"
+        }
+        declined_requests_collection.insert_one(declined_request)
+
+        # Remove the request from the donations collection
+        donations_collection.delete_one({"donor_id": donor_id})
+
+        return jsonify({"message": "Request declined successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/req_accept', methods=['GET'])
+def get_accepted_requests():
+    try:
+        # Fetch all accepted requests
+        accepted_requests = accepted_requests_collection.find({})
+        accepted_requests_list = []
+        for request in accepted_requests:
+            accepted_requests_list.append({
+                "donor_id": request["donor_id"],
+                "condition": request["condition"],
+                "number_items": request["number_items"],
+                "donation_date": request["donation_date"],
+                "additional_notes": request["additional_notes"],
+                "image": request["image"],
+                "itemname": request["itemname"],
+                "organisation_id": request["organisation_id"],
+                "status": request["status"]
+            })
+
+        return jsonify(accepted_requests_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/req_decline', methods=['GET'])
+def get_declined_requests():
+    try:
+        # Fetch all declined requests
+        declined_requests = declined_requests_collection.find({})
+        declined_requests_list = []
+        for request in declined_requests:
+            declined_requests_list.append({
+                "donor_id": request["donor_id"],
+                "condition": request["condition"],
+                "number_items": request["number_items"],
+                "donation_date": request["donation_date"],
+                "additional_notes": request["additional_notes"],
+                "image": request["image"],
+                "itemname": request["itemname"],
+                "organisation_id": request["organisation_id"],
+                "status": request["status"]
+            })
+
+        return jsonify(declined_requests_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
 
 if __name__ == "__main__":
     try:
