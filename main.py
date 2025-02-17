@@ -6,6 +6,9 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
+import base64
+from io import BytesIO
+from PIL import Image
 
 
 app = Flask(__name__)
@@ -23,6 +26,7 @@ CORS(app)
 donors = mongo.db.donors
 organizations = mongo.db.organizations
 donors_collection =mongo.db.donors_collection
+donations_collection = mongo.db["donations"]
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -165,6 +169,8 @@ def get_donor_data():
         return jsonify({"error": str(e)}), 500
     
 
+
+
 @app.route('/imageupload', methods=['POST'])
 def image_upload():
     try:
@@ -204,8 +210,64 @@ def image_upload():
 
 
        
+@app.route('/donations', methods=['POST'])
+def donations():
+    try:
+        data = request.json
+        donor_id = data.get("donor_id")
+        condition = data.get("condition")
+        number_items = data.get("numberOfItems")
+        donation_date = data.get("donation_date")
+        additional_notes = data.get("Additional_Notes")
+        image = data.get("image")
 
+        print(data)
 
+        # Validate required fields
+        if not (donor_id and condition and donation_date):
+            return jsonify({"error": "All fields are required"}), 400
+
+        # Check if donor exists
+        existing_donor = donors_collection.find_one({"donor_id": donor_id})
+        if not existing_donor:
+            return jsonify({"error": "Donor not found"}), 404
+
+        # Update donor's donation details
+        total_donations = existing_donor.get("total_donations", 0)
+        items_donated = existing_donor.get("items_donated", 0)
+        recent_donations = existing_donor.get("recent_donations", [])
+
+        total_donations += 1
+        items_donated += number_items if number_items else 0
+
+        # Update donor record
+        donors_collection.update_one(
+            {"donor_id": donor_id},
+            {
+                "$set": {
+                    "total_donations": total_donations,
+                    "items_donated": items_donated,
+                    "last_donation": donation_date,
+                    "recent_donations": recent_donations
+                }
+            }
+        )
+
+        # Insert donation record
+        donation_record = {
+            "donor_id": donor_id,
+            "condition": condition,
+            "number_items": number_items,
+            "donation_date": donation_date,
+            "additional_notes": additional_notes,
+            "image": image
+        }
+        donation_id = donations_collection.insert_one(donation_record).inserted_id
+
+        return jsonify({"message": "Donation recorded successfully!", "donation_id": str(donation_id)}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
    
 
