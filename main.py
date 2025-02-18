@@ -184,18 +184,18 @@ def get_donor_details():
 @app.route('/donorInfo', methods=['GET'])
 def get_donor_info():
     try:
-        # Get the comma-separated donor_ids from the query parameter
+       
         donor_ids = request.args.get("donor_ids")
         if not donor_ids:
             return jsonify({"error": "No donor_ids provided"}), 400
 
-        # Split the comma-separated string into a list of donor_ids
+      
         donor_id_list = donor_ids.split(',')
 
-        # Fetch all donors matching the provided donor_ids
+     
         donors = donors_collection.find({"donor_id": {"$in": donor_id_list}})
 
-        # Prepare the response data
+       
         donor_data_list = []
         for donor in donors:
             donor_data = {
@@ -234,13 +234,13 @@ def image_upload():
         image_filename = f"image_{uuid.uuid4()}.png"
         image.save(image_filename)
 
-        # Process the image with Gemini API
+       
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
-        prompt = "Analyze the image and describe what is shown in simple terms..."
+        prompt = "Be prefessional and stop telling here's your image description etc.Analyze the image and describe what is shown in simple terms, including the number of items present. If the item appears to be in bad condition (e.g., damaged, worn out, or broken), clearly state that the item is in bad condition."
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
 
-        # Clean up: Delete the saved image file
+        
         os.remove(image_filename)
 
         return jsonify({"message": "Image uploaded successfully!", "description": response.text}), 201
