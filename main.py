@@ -221,23 +221,22 @@ import uuid
 def image_upload():
     try:
         data = request.json
-        image_data = data.get("image")  # Base64 encoded image
-
+        image_data = data.get("image") 
         if not image_data:
             return jsonify({"error": "No image data provided"}), 400
 
-        # Decode the base64 image
+       
         image_data = image_data.split(",")[1]
         image = Image.open(BytesIO(base64.b64decode(image_data)))
 
-        # Save the image to a unique file path
+       
         image_filename = f"image_{uuid.uuid4()}.png"
         image.save(image_filename)
 
        
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
-        prompt = "Be prefessional and stop telling here's your image description etc.Analyze the image and describe what is shown in simple terms, including the number of items present. If the item appears to be in bad condition (e.g., damaged, worn out, or broken), clearly state that the item is in bad condition."
+        prompt = "Be prefessional and stop saying the header description.Analyze the image and describe what is shown in simple terms, including the number of items present. If the item appears to be in bad condition (e.g., damaged, worn out, or broken), clearly state that the item is in bad condition. Tell the number of items and list the item names"
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
 
         
