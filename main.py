@@ -154,8 +154,33 @@ def get_donor():
     return jsonify({"error": str(e)}), 500
 
 
-    
+@app.route('/donationDetails', methods=['GET'])
+def donationDetails():
+    try:
+        donor_id = request.args.get("donor_id")
+        if not donor_id:
+            return jsonify({"error": "Donor ID is required"}), 400
 
+        # Call the find_one method with the query
+        donation = donations_collection.find_one({"donor_id": donor_id})
+        if not donation:
+            return jsonify({"error": "Donation not found"}), 404
+        
+        donation_data = {
+            "donor_id": donation["donor_id"],
+            "condition": donation["condition"],
+            "number_items": donation["number_items"],
+            "donation_date": donation["donation_date"],
+            "additional_notes": donation["additional_notes"],
+            "image": donation["image"],
+            "response": donation["response"],
+            "itemname": donation["itemname"]
+        }
+
+        return jsonify(donation_data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 @app.route('/donordetails', methods=['GET'])
 def get_donor_details():
@@ -561,6 +586,46 @@ def LeaderBoard():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+
+from datetime import datetime
+
+@app.route('/chart', methods=['GET'])
+def get_donations():
+    donor_id = request.args.get('donor_id')
+    if not donor_id:
+        return jsonify({"error": "donor_id is required"}), 400
+
+    try:
+        # Fetch donations for the donor_id, sorted by donation_date in descending order
+        donations = donations_collection.find({"donor_id": donor_id}).sort("donation_date", -1)
+
+        # Convert MongoDB cursor to a list of dictionaries
+        donations_list = []
+        for donation in donations:
+            # Extract the month from the donation_date
+            donation_date = datetime.strptime(donation["donation_date"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            month = donation_date.strftime("%B")  # Full month name (e.g., "January")
+
+            # Find if the month already exists in the list
+            month_exists = False
+            for entry in donations_list:
+                if entry["month"] == month:
+                    entry["items"] += donation["number_items"]
+                    month_exists = True
+                    break
+
+            # If the month doesn't exist, add a new entry
+            if not month_exists:
+                donations_list.append({
+                    "month": month,
+                    "items": donation["number_items"]
+                })
+
+        return jsonify(donations_list), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  
+
 
 if __name__ == "__main__":
     try:
