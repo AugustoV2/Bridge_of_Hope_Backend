@@ -336,7 +336,7 @@ def organisationDetails():
         org_i=organizations.update_one({"_id": ObjectId(organizations_id)}, {"$set": {"Details": "Yes"}})
         print(org_i)
         
-
+        
        
         
         org_id=oraganisation_collection.insert_one({
@@ -539,6 +539,28 @@ def get_declined_requests():
         return jsonify({"error": str(e)}), 500
     
 
+
+
+@app.route('/leaderBoard', methods=['GET'])
+def LeaderBoard():
+    try:
+        # Fetch all donors
+        donors = donors_collection.find({})
+        donors_list = []
+        for donor in donors:
+            donors_list.append({
+                "donor_id": donor["donor_id"],
+                "full_name": donor["full_name"],
+               
+                "items_donated": donor["items_donated"],
+               
+            })
+
+        return jsonify(donors_list), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 if __name__ == "__main__":
     try:
