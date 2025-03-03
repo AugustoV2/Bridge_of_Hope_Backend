@@ -20,7 +20,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 mongo = PyMongo(app)
 bcrypt = Bcrypt(app)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Collection
 donors = mongo.db.donors
