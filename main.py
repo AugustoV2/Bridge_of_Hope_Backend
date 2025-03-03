@@ -20,7 +20,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 mongo = PyMongo(app)
 bcrypt = Bcrypt(app)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 # Collection
 donors = mongo.db.donors
@@ -30,6 +30,7 @@ donations_collection = mongo.db["donations"]
 oraganisation_collection = mongo.db["oraganisation_collection"]
 accepted_requests_collection = mongo.db["accepted_requests"]  # New collection
 declined_requests_collection = mongo.db["declined_requests"] 
+pickup_requests = mongo.db["pickup_requests"]  # New collection
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -242,6 +243,9 @@ def get_donor_info():
 
 import uuid
 
+# Define the db variable
+db = mongo.db
+
 @app.route('/imageupload', methods=['POST'])
 def image_upload():
     try:
@@ -430,30 +434,81 @@ def organisationPickup():
         return jsonify({"error": str(e)}), 500
     
 
-
 @app.route('/acceptRequest', methods=['POST'])
 def accept_request():
-    data = request.json
-    donor_id = data.get('donor_id')
-    organisation_id = data.get('organisation_id')
-    pickup_date = data.get('pickup_date')
-    pickup_time = data.get('pickup_time')
+    try:
+        data = request.json
+        donor_id = data.get("donor_id")
+        organisation_id = data.get("organisation_id")
 
-    if not all([donor_id, organisation_id, pickup_date, pickup_time]):
-        return jsonify({"error": "Missing required fields"}), 400
+        if not (donor_id and organisation_id):
+            return jsonify({"error": "Donor ID and Organisation ID are required"}), 400
 
-    # Update the request status in the database
-    db.pickup_requests.update_one(
-        {"donor_id": donor_id, "organisation_id": organisation_id},
-        {"$set": {
-            "status": "accepted",
+        # Find the request in the donations collection
+        request_to_accept = donations_collection.find_one({"donor_id": donor_id})
+        if not request_to_accept:
+            return jsonify({"error": "Request not found"}), 404
+        
+
+        #when the request is accepyted update total pickup Pending Pickups Completed Today etx
+        existing_organisation = oraganisation_collection.find_one({"organizations_id": organisation_id})
+        if not existing_organisation:
+            return jsonify({"error": "Organisation not found"}), 404
+        
+        Total_Pickups = existing_organisation.get("Total_Pickups", 0) + 1
+        org_e = oraganisation_collection.update_one({"_id": ObjectId(organisation_id)}, {"$set": {"Total_Pickups": Total_Pickups}}) 
+       
+
+
+
+        # Move the request to the accepted_requests collection
+        accepted_request = {
+            "donor_id": request_to_accept["donor_id"],
+            "condition": request_to_accept["condition"],
+            "number_items": request_to_accept["number_items"],
+            "donation_date": request_to_accept["donation_date"],
+            "additional_notes": request_to_accept["additional_notes"],
+            "image": request_to_accept["image"],
+            "itemname": request_to_accept["itemname"],
+            "organisation_id": organisation_id,
+            "status": "accepted"
+        }
+        accepted_requests_collection.insert_one(accepted_request)
+
+        # Remove the request from the donations collection
+        donations_collection.delete_one({"donor_id": donor_id})
+
+        return jsonify({"message": "Request accepted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/acceptRequestorg', methods=['POST'])
+def accept_requestorg():
+    try:
+        data = request.json
+        donor_id = data.get('donor_id')
+        organisation_id = data.get('organisation_id')
+        pickup_date = data.get('pickup_date') 
+        pickup_time = data.get('pickup_time')
+
+        if not all([donor_id, organisation_id, pickup_date, pickup_time]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Save the request in the pickup_requests collection
+        pickup_request = {
+            "donor_id": donor_id,
+            "organisation_id": organisation_id,
             "pickup_date": pickup_date,
             "pickup_time": pickup_time,
-            "updated_at": datetime.utcnow()
-        }}
-    )
+            "status": "accepted",
+            "created_at": datetime.utcnow()
+        }
+        pickup_requests.insert_one(pickup_request)
 
-    return jsonify({"message": "Pickup request accepted successfully"}), 200
+        return jsonify({"message": "Pickup request accepted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # New endpoint to decline a pickup request
 @app.route('/declineRequest', methods=['POST'])
