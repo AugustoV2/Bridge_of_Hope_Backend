@@ -157,30 +157,32 @@ def get_donor():
 
 @app.route('/donationDetails', methods=['GET'])
 def donationDetails():
-    try:
-        donor_id = request.args.get("donor_id")
-        if not donor_id:
-            return jsonify({"error": "Donor ID is required"}), 400
+        try:
+            donor_id = request.args.get("donor_id")
+            if not donor_id:
+                return jsonify({"error": "Donor ID is required"}), 400
 
-        # Call the find_one method with the query
-        donation = donations_collection.find_one({"donor_id": donor_id})
-        if not donation:
-            return jsonify({"error": "Donation not found"}), 404
-        
-        donation_data = {
-            "donor_id": donation["donor_id"],
-            "condition": donation["condition"],
-            "number_items": donation["number_items"],
-            "donation_date": donation["donation_date"],
-            "additional_notes": donation["additional_notes"],
-            "image": donation["image"],
-            "response": donation["response"],
-            "itemname": donation["itemname"]
-        }
+            # Find all donations for the given donor_id
+            donations = donations_collection.find({"donor_id": donor_id})
+            donation_list = []
+            for donation in donations:
+                donation_list.append({
+                    "donor_id": donation["donor_id"],
+                    "condition": donation["condition"],
+                    "number_items": donation["number_items"],
+                    "donation_date": donation["donation_date"],
+                    "additional_notes": donation["additional_notes"],
+                    "image": donation["image"],
+                    "response": donation["response"],
+                    "itemname": donation["itemname"]
+                })
 
-        return jsonify(donation_data), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+            if not donation_list:
+                return jsonify({"error": "No donations found for the given donor ID"}), 404
+
+            return jsonify(donation_list), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
     
 
 @app.route('/donordetails', methods=['GET'])
