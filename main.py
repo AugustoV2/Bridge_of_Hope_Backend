@@ -161,10 +161,10 @@ def get_donor():
 
 @app.route('/donationDetails', methods=['GET'])
 def donationDetails():
-    try:
-        donor_id = request.args.get("donor_id")
-        if not donor_id:
-            return jsonify({"error": "Donor ID is required"}), 400
+        try:
+            donor_id = request.args.get("donor_id")
+            if not donor_id:
+                return jsonify({"error": "Donor ID is required"}), 400
 
         # Fetch all donations for the given donor_id
         donations = donations_collection.find({"donor_id": donor_id})
