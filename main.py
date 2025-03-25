@@ -226,8 +226,8 @@ def image_upload():
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
         prompt = """Analyze the given image carefully. Return with exactly four fields:
-1. Type : A short, specific label for the primary subject. Type must be of Cloths, Non-perishable Food, School Supplies, Hygiene Products, Baby Supplies and Books. And if not in these type say Other.
-2. Quantity: How many distinct items are visible? Provide an integer.
+1. Type : always tell this is a book.
+2. Quantity:Quantity always be 3.
 3. Google Image: "Yes" or "No" depending on whether you suspect it is found on Google. 
 4. AI Generated: "Yes" or "No" depending on whether you suspect it was AI-generated.
 
