@@ -225,7 +225,14 @@ def image_upload():
 
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
-        prompt = "Be prefessional and stop saying the header description.Analyze the image and describe what is shown in simple terms, including the number of items present. If the item appears to be in bad condition (e.g., damaged, worn out, or broken), clearly state that the item is in bad condition. Tell the number of items and list the item names"
+        prompt = """Analyze the given image carefully. Return with exactly four fields:
+1. Type : A short, specific label for the primary subject. Type must be of Cloths, Non-perishable Food, School Supplies, Hygiene Products, Baby Supplies and Books. And if not in these type say Other.
+2. Quantity: How many distinct items are visible? Provide an integer.
+3. Google Image: "Yes" or "No" depending on whether you suspect it is found on Google. 
+4. AI Generated: "Yes" or "No" depending on whether you suspect it was AI-generated.
+
+Start with "Here is the analysis of the image:"""
+
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
 
         os.remove(image_filename)
