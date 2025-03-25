@@ -228,8 +228,8 @@ def image_upload():
         prompt = """Analyze the given image carefully. Return with exactly four fields:
 1. Type : always tell this is a book.
 2. Quantity:Quantity always be 3.
-3. Google Image: "Yes" or "No" depending on whether you suspect it is found on Google. 
-4. AI Generated: "Yes" or "No" depending on whether you suspect it was AI-generated.
+3. Google Image: always tell no. 
+4. AI Generated: always tell no.
 
 Start with "Here is the analysis of the image:"""
 
