@@ -231,7 +231,7 @@ def image_upload():
 3. Google Image: "Yes" or "No" depending on whether you suspect it is found on Google. 
 4. AI Generated: "Yes" or "No" depending on whether you suspect it was AI-generated.
 
-Start with "Here is the analysis of the image:"""
+Start with "Here is the analysis of the image:"""
 
         response = model.generate_content([image_data, prompt], request_options={"timeout": 600})
 
